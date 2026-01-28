@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8">
-<title>Typing Quest</title>
+<title>โปรแกรมฝึกพิมพ์บนเว็บ</title>
 
 <style>
 body{margin:0;font-family:'Segoe UI',sans-serif;background:#0f172a;color:#e5e7eb}
@@ -66,8 +66,8 @@ th{color:#38bdf8}
 </select>
 
 <button onclick="openMode('practice')">ฝึกพิมพ์</button>
-<button onclick="openMode('pre')">ทดสอบก่อนเรียน</button>
-<button onclick="openMode('post')">ทดสอบหลังเรียน</button>
+<button onclick="openMode('ทดสอบก่อนเรียน')">ทดสอบก่อนเรียน</button>
+<button onclick="openMode('ทดสอบหลังเรียน')">ทดสอบหลังเรียน</button>
 <button onclick="openStats()">สถิติ</button>
 <button class="back" onclick="logout()">ออกจากระบบ</button>
 </div>
@@ -98,20 +98,28 @@ th{color:#38bdf8}
 </div>
 
 <script>
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwiLRRhUOxzPL2Xpg12GCmlNGvDlU7wzfs5ZaGaaZitMPan7AZNmNLg5TtyfuDweH49cw/exec";
+
 const teacher={user:"witthawat",pass:"1234"};
 let users=JSON.parse(localStorage.getItem("users")||"[]");
 let results=JSON.parse(localStorage.getItem("results")||"[]");
 let currentUser=null;
 let testType="",duration=1;
 
-const lessons={
- th:{
-  1:["การ|เล่น|เกม|ช่วย|ผ่อนคลาย","ควร|แบ่ง|เวลา|ให้|เหมาะสม"],
-  2:["การ|เล่น|เกม|คอมพิวเตอร์|ต้อง|มี|วินัย|และ|ความ|รับผิดชอบ","พัก|สายตา|ทุก|30|นาที"]
+const lessons = {
+  th: {
+    1:["การ|เล่น|เกม|คอมพิวเตอร์|เป็น|กิจกรรม|ที่|ช่วย|สร้าง|ความ|สนุก|และ|ความ|เพลิดเพลิน|ให้|กับ|ผู้เล่น|ใน|เวลาว่าง|เกม|บาง|ประเภท|ช่วย|ฝึก|ทักษะ|การ|คิด|การ|ตัดสินใจ|และ|การ|แก้ปัญหา|แต่|ผู้เล่น|ควร|รู้จัก|ควบคุม|เวลา|ไม่|เล่น|เกม|ติดต่อกัน|นาน|เกินไป|จน|ส่งผล|เสีย|ต่อ|สุขภาพ|และ|การ|เรียน","คอมพิวเตอร์|เป็น|เครื่องมือ|สำคัญ|ใน|ชีวิต|ประจำวัน|ใช้|สำหรับ|การ|เรียนรู้|การ|ค้นคว้า|และ|การ|สื่อสาร|ผู้ใช้|ควร|ใช้งาน|อย่าง|มี|สติ|ไม่|ใช้|คอมพิวเตอร์|ใน|ทาง|ที่|ไม่|เหมาะสม|และ|ควร|คำนึง|ถึง|ความ|ปลอดภัย|ของ|ข้อมูล|ส่วนตัว","เกม|ออนไลน์|ต้อง|อาศัย|การ|สื่อสาร|ระหว่าง|ผู้เล่น|หลาย|คน|ผู้เล่น|ควร|ใช้|คำ|สุภาพ|เคารพ|ผู้อื่น|และ|ปฏิบัติตาม|กติกา|การ|เล่น|อย่าง|มี|มารยาท|จะ|ช่วย|สร้าง|สังคม|เกม|ที่|ดี|และ|น่า|อยู่","การ|ใช้|คอมพิวเตอร์|เป็น|เวลา|นาน|อาจ|ทำให้|เกิด|อาการ|ปวดตา|ปวดคอ|และ|เมื่อยล้า|ผู้ใช้|ควร|พัก|สายตา|ทุก|ระยะ|และ|ลุก|เปลี่ยน|อิริยาบถ|เพื่อ|ลด|ผลกระทบ|ต่อ|สุขภาพ","นักเรียน|ควร|เลือก|เกม|ที่|เหมาะสม|กับ|วัย|และ|ระดับ|ความ|สามารถ|ของ|ตนเอง|ไม่|ควร|เล่น|เกม|ที่|มี|เนื้อหา|รุนแรง|หรือ|ไม่|เหมาะสม|เพื่อ|ส่งเสริม|พฤติกรรม|ที่|ดี"],
+ 2:[
+ "ใน|ยุค|ดิจิทัล|คอมพิวเตอร์|มี|บทบาท|สำคัญ|ต่อ|การ|ดำเนิน|ชีวิต|ประจำวัน|ทั้ง|ด้าน|การ|เรียน|การ|ทำงาน|และ|การ|สื่อสาร|นักเรียน|สามารถ|ใช้|คอมพิวเตอร์|เพื่อ|ค้นคว้า|ข้อมูล|ทำ|รายงาน|และ|พัฒนา|ทักษะ|ใหม่|แต่|ต้อง|ใช้งาน|อย่าง|มี|ความ|รับผิดชอบ|ไม่|คัดลอก|ผลงาน|ผู้อื่น|และ|เคารพ|ลิขสิทธิ์",
+ "การ|เล่น|เกม|คอมพิวเตอร์|ไม่|ได้|มี|แต่|ข้อ|เสีย|เสมอ|ไป|เกม|หลาย|ประเภท|ช่วย|ฝึก|สมาธิ|การ|วางแผน|และ|การ|แก้ปัญหา|ผู้เล่น|ควร|รู้จัก|เลือก|เกม|ที่|มี|ประโยชน์|และ|เล่น|ใน|ระยะเวลา|ที่|เหมาะสม",
+ "เกม|ออนไลน์|เป็น|พื้นที่|ที่|ผู้เล่น|จาก|หลาย|ที่|สามารถ|พบกัน|ได้|ผู้เล่น|ควร|ปฏิบัติตน|อย่าง|สุภาพ|ไม่|กลั่นแกล้ง|ผู้อื่น|และ|ไม่|ใช้|คำ|หยาบคาย|การ|เคารพ|กัน|จะ|ทำให้|การ|เล่น|เกม|สนุก|และ|ปลอดภัย",
+ "การ|ดูแล|สุขภาพ|ขณะ|ใช้|คอมพิวเตอร์|เป็น|สิ่ง|ที่|ไม่|ควร|มองข้าม|ผู้ใช้|ควร|นั่ง|ให้|ถูก|ท่า|พัก|สายตา|เป็น|ระยะ|และ|ออกกำลังกาย|อย่าง|สม่ำเสมอ|เพื่อ|ป้องกัน|ปัญหา|สุขภาพ|ใน|ระยะ|ยาว"
+]
+
  },
  en:{
-  1:["Playing|games|can|be|fun","Manage|your|time|well"],
-  2:["Computer|games|require|discipline|and|responsibility","Take|breaks|every|thirty|minutes"]
+  1:["Playing|computer|games|is|an|activity|that|provides|fun|and|entertainment|for|many|people|in|their|free|time|Some|games|help|develop|thinking|decision|making|and|problem|solving|skills|However|players|should|control|their|gaming|time|to|avoid|negative|effects|on|health|and|education","Computers|are|important|tools|in|daily|life|They|are|used|for|learning|research|and|communication|Users|should|use|computers|carefully|and|be|aware|of|personal|data|security|when|working|online","Online|games|require|communication|between|many|players|Good|players|use|polite|language|respect|others|and|follow|the|rules|Good|manners|help|create|a|positive|gaming|community","Using|a|computer|for|long|periods|can|cause|eye|strain|neck|pain|and|fatigue|Users|should|take|regular|breaks|and|change|their|posture|to|reduce|health|problems","Students|should|choose|games|that|match|their|age|and|ability|They|should|avoid|games|with|violent|or|inappropriate|content|to|support|positive|behavior"],
+  2:["In|the|digital|age|computers|play|an|important|role|in|daily|life|They|support|learning|working|and|communication|Students|can|use|computers|to|research|information|create|reports|and|develop|new|skills|They|must|use|technology|responsibly|and|respect|copyright","Playing|computer|games|is|not|always|harmful|Many|games|help|improve|concentration|planning|and|problem|solving|Players|should|select|useful|games|and|play|for|appropriate|amounts|of|time","Online|games|connect|players|from|many|places|Players|should|behave|politely|avoid|harassment|and|not|use|offensive|language|Respect|helps|make|gaming|fun|and|safe","Health|care|while|using|a|computer|should|not|be|ignored|Users|should|sit|with|proper|posture|rest|their|eyes|regularly|and|exercise|to|prevent|long|term|health|issues","When|students|use|computers|and|games|properly|technology|can|support|learning|skill|development|and|prepare|them|for|future|life|in|an|effective|way"]
  }
 };
 
@@ -143,17 +151,24 @@ function logout(){location.reload()}
 
 /* MODE */
 function openMode(type){
- testType=type;
- duration=roundTime.value;
- lessonIndex=0;
- words=[];
- let lang=langSelect.value;
- lessons[lang][duration].forEach(t=>words.push(...t.split("|")));
- dashboardPage.classList.add("hidden");
- typingPage.classList.remove("hidden");
- modeTitle.innerText=`${type} | ${duration} นาที`;
- startTyping();
+  mode = type;
+  duration = parseInt(roundTime.value);
+  wordIndex = 0;
+  words = [];
+
+  let lang = langSelect.value;
+
+  lessons[lang][duration].forEach(text=>{
+    words.push(...text.split("|"));
+  });
+
+  dashboardPage.classList.add("hidden");
+  typingPage.classList.remove("hidden");
+  modeTitle.innerText = `${type} | ${duration} นาที`;
+
+  startTyping();
 }
+
 
 /* TYPING */
 function startTyping(){
@@ -168,39 +183,92 @@ function startTyping(){
   if(timeLeft<=0) endTyping();
  },1000);
 }
-typingInput.addEventListener("input",()=>{
- let v=typingInput.value;
- if(v.endsWith(" ")){
-  totalTyped++;
-  if(v.trim()===words[wordIndex]) correct++; else wrong++;
-  wordIndex++;
-  typingInput.value="";
- }
- render(v.trim());
+typingInput.addEventListener("input", ()=>{
+  let v = typingInput.value;
+
+  if(v.endsWith(" ")){
+    totalTyped++;
+
+    if(v.trim() === words[wordIndex]){
+      correct++;
+    }else{
+      wrong++;
+    }
+
+    wordIndex++;          // เลื่อนไปคำถัดไป
+    typingInput.value = "";
+  }
+
+  render(typingInput.value.trim());
 });
 function render(input){
- let html="";
- words.forEach((w,i)=>{
-  if(i<wordIndex) return;
-  if(i===wordIndex){
-   [...w].forEach((c,j)=>{
-    html+=j<input.length?(input[j]===c?`<span class="correct">${c}</span>`:`<span class="wrong">${c}</span>`):`<span class="pending">${c}</span>`;
-   });
-   html+=" ";
-  }else html+=`<span class="pending">${w}</span> `;
- });
- wordBox.innerHTML=html;
+  let html = "";
+
+  // แสดงทีละ 5 คำ
+  let start = wordIndex;
+  let end = Math.min(wordIndex + 5, words.length);
+
+  for(let i = start; i < end; i++){
+    let w = words[i];
+
+    if(i === wordIndex){
+      // คำที่กำลังพิมพ์
+      [...w].forEach((c,j)=>{
+        if(j < input.length){
+          html += input[j] === c
+            ? `<span class="correct">${c}</span>`
+            : `<span class="wrong">${c}</span>`;
+        }else{
+          html += `<span class="pending">${c}</span>`;
+        }
+      });
+      html += " ";
+    }else{
+      // คำถัดไป (ยังไม่พิมพ์)
+      html += `<span class="pending">${w}</span> `;
+    }
+  }
+
+  wordBox.innerHTML = html;
 }
+
 function updateTime(){
  timeDisplay.innerText=`${String(Math.floor(timeLeft/60)).padStart(2,"0")}:${String(timeLeft%60).padStart(2,"0")}`;
 }
 function endTyping(){
  clearInterval(timer);
  let wpm=Math.round(totalTyped/(duration));
+
  if(testType!=="practice"){
-  results.push({time:new Date().toLocaleString(),name:currentUser.name,user:currentUser.user,type:testType,duration,total:totalTyped,correct,wrong,wpm});
+  // เก็บในเครื่อง (เดิม)
+  results.push({
+    time:new Date().toLocaleString(),
+    name:currentUser.name,
+    user:currentUser.user,
+    type:testType,
+    duration,
+    total:totalTyped,
+    correct,
+    wrong,
+    wpm
+  });
   localStorage.setItem("results",JSON.stringify(results));
+
+  // ✅ ส่งไป Google Sheet
+  fetch(GOOGLE_SCRIPT_URL, {
+    method: "POST",
+    body: JSON.stringify({
+      name: currentUser.name,
+      user: currentUser.user,
+      type: testType,
+      duration: duration,
+      correct: correct,
+      wrong: wrong,
+      wpm: wpm
+    })
+  }).catch(err => console.error("ส่งข้อมูลไม่สำเร็จ", err));
  }
+
  alert(`ทั้งหมด ${totalTyped} | ถูก ${correct} | ผิด ${wrong} | ${wpm} คำ/นาที`);
  goDashboard();
 }
