@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>Typing Quest</title>
+
+<style>
+body{margin:0;font-family:'Segoe UI',sans-serif;background:#0f172a;color:#e5e7eb}
+.container{max-width:1100px;margin:auto;padding:20px}
+.card{background:#111827;border-radius:16px;padding:24px;margin-bottom:20px}
+h1,h2,h3{text-align:center;color:#38bdf8}
+.hidden{display:none}
+input,select,button{width:100%;padding:12px;margin:8px 0;border-radius:10px;border:none}
+input,select{background:#020617;color:#e5e7eb;border:1px solid #334155}
+button{background:#38bdf8;color:#020617;font-weight:bold;cursor:pointer}
+button.back{background:#64748b;color:#fff}
+button.del{background:#ef4444;color:#fff}
+.word-box{background:#020617;border:2px solid #334155;border-radius:14px;padding:20px;font-size:26px;text-align:center;min-height:120px}
+.correct{color:#22c55e}
+.wrong{color:#ef4444}
+.pending{color:#64748b}
+.timer{text-align:center;font-size:30px;color:#facc15}
+table{width:100%;border-collapse:collapse}
+th,td{padding:8px;border-bottom:1px solid #334155;text-align:center}
+th{color:#38bdf8}
+</style>
+</head>
+
+<body>
+<div class="container">
+<h1>โปรแกรมฝึกพิมพ์บนเว็บ</h1>
+
+<!-- LOGIN -->
+<div class="card" id="loginPage">
+<h2>เข้าสู่ระบบ</h2>
+<input id="loginUser" placeholder="Username">
+<input id="loginPass" type="password" placeholder="Password">
+<button onclick="login()">เข้าสู่ระบบ</button>
+<button class="back" onclick="showRegister()">สมัคร</button>
+</div>
+
+<!-- REGISTER -->
+<div class="card hidden" id="registerPage">
+<h2>สมัครนักเรียน</h2>
+<input id="r_name" placeholder="ชื่อ-นามสกุล">
+<input id="r_class" placeholder="ชั้น">
+<input id="r_no" placeholder="เลขที่">
+<input id="r_user" placeholder="Username">
+<input id="r_pass" type="password" placeholder="Password">
+<button onclick="register()">สมัคร</button>
+<button class="back" onclick="backLogin()">ย้อนกลับ</button>
+</div>
+
+<!-- DASHBOARD -->
+<div class="card hidden" id="dashboardPage">
+<h2>เมนูหลัก</h2>
+
+<select id="langSelect">
+<option value="th">🇹🇭 ภาษาไทย</option>
+<option value="en">🇬🇧 English</option>
+</select>
+
+<select id="roundTime">
+<option value="1">⏱ 1 นาที</option>
+<option value="2">⏱ 2 นาที</option>
+</select>
+
+<button onclick="openMode('practice')">ฝึกพิมพ์</button>
+<button onclick="openMode('pre')">ทดสอบก่อนเรียน</button>
+<button onclick="openMode('post')">ทดสอบหลังเรียน</button>
+<button onclick="openStats()">สถิติ</button>
+<button class="back" onclick="logout()">ออกจากระบบ</button>
+</div>
+
+<!-- TYPING -->
+<div class="card hidden" id="typingPage">
+<h2 id="modeTitle"></h2>
+<div class="word-box" id="wordBox"></div>
+<input id="typingInput" placeholder="พิมพ์แล้วเว้นวรรค">
+<div class="timer" id="timeDisplay">00:00</div>
+<button onclick="startTyping()">▶ เริ่มพิมพ์</button>
+<button class="back" onclick="goDashboard()">ย้อนกลับ</button>
+</div>
+
+<!-- STATS -->
+<div class="card hidden" id="statsPage">
+<h2>สถิติ</h2>
+
+<button id="exportBtn" class="hidden" onclick="exportCSV()">📥 บันทึกข้อมูลลงเครื่อง (CSV)</button>
+
+<table id="resultTable"></table>
+
+<h3 id="studentTitle" class="hidden">จัดการผู้ใช้ (ครู)</h3>
+<table id="userTable"></table>
+
+<button class="back" onclick="goDashboard()">ย้อนกลับ</button>
+</div>
+</div>
+
+<script>
+const teacher={user:"witthawat",pass:"1234"};
+let users=JSON.parse(localStorage.getItem("users")||"[]");
+let results=JSON.parse(localStorage.getItem("results")||"[]");
+let currentUser=null;
+let testType="",duration=1;
+
+const lessons={
+ th:{
+  1:["การ|เล่น|เกม|ช่วย|ผ่อนคลาย","ควร|แบ่ง|เวลา|ให้|เหมาะสม"],
+  2:["การ|เล่น|เกม|คอมพิวเตอร์|ต้อง|มี|วินัย|และ|ความ|รับผิดชอบ","พัก|สายตา|ทุก|30|นาที"]
+ },
+ en:{
+  1:["Playing|games|can|be|fun","Manage|your|time|well"],
+  2:["Computer|games|require|discipline|and|responsibility","Take|breaks|every|thirty|minutes"]
+ }
+};
+
+let words=[],lessonIndex=0,wordIndex=0;
+let totalTyped=0,correct=0,wrong=0;
+let timer,timeLeft,totalTime;
+
+/* AUTH */
+function showRegister(){loginPage.classList.add("hidden");registerPage.classList.remove("hidden")}
+function backLogin(){registerPage.classList.add("hidden");loginPage.classList.remove("hidden")}
+function register(){
+ users.push({name:r_name.value,class:r_class.value,no:r_no.value,user:r_user.value,pass:r_pass.value});
+ localStorage.setItem("users",JSON.stringify(users));
+ alert("สมัครเรียบร้อย");
+ backLogin();
+}
+function login(){
+ if(loginUser.value===teacher.user && loginPass.value===teacher.pass)
+  currentUser={name:"ครู",user:"teacher",role:"teacher"};
+ else{
+  let u=users.find(x=>x.user===loginUser.value && x.pass===loginPass.value);
+  if(!u) return alert("ไม่พบผู้ใช้");
+  currentUser={...u,role:"student"};
+ }
+ loginPage.classList.add("hidden");
+ dashboardPage.classList.remove("hidden");
+}
+function logout(){location.reload()}
+
+/* MODE */
+function openMode(type){
+ testType=type;
+ duration=roundTime.value;
+ lessonIndex=0;
+ words=[];
+ let lang=langSelect.value;
+ lessons[lang][duration].forEach(t=>words.push(...t.split("|")));
+ dashboardPage.classList.add("hidden");
+ typingPage.classList.remove("hidden");
+ modeTitle.innerText=`${type} | ${duration} นาที`;
+ startTyping();
+}
+
+/* TYPING */
+function startTyping(){
+ totalTyped=correct=wrong=0;
+ wordIndex=0;
+ timeLeft=duration*60;
+ updateTime();
+ render("");
+ clearInterval(timer);
+ timer=setInterval(()=>{
+  timeLeft--;updateTime();
+  if(timeLeft<=0) endTyping();
+ },1000);
+}
+typingInput.addEventListener("input",()=>{
+ let v=typingInput.value;
+ if(v.endsWith(" ")){
+  totalTyped++;
+  if(v.trim()===words[wordIndex]) correct++; else wrong++;
+  wordIndex++;
+  typingInput.value="";
+ }
+ render(v.trim());
+});
+function render(input){
+ let html="";
+ words.forEach((w,i)=>{
+  if(i<wordIndex) return;
+  if(i===wordIndex){
+   [...w].forEach((c,j)=>{
+    html+=j<input.length?(input[j]===c?`<span class="correct">${c}</span>`:`<span class="wrong">${c}</span>`):`<span class="pending">${c}</span>`;
+   });
+   html+=" ";
+  }else html+=`<span class="pending">${w}</span> `;
+ });
+ wordBox.innerHTML=html;
+}
+function updateTime(){
+ timeDisplay.innerText=`${String(Math.floor(timeLeft/60)).padStart(2,"0")}:${String(timeLeft%60).padStart(2,"0")}`;
+}
+function endTyping(){
+ clearInterval(timer);
+ let wpm=Math.round(totalTyped/(duration));
+ if(testType!=="practice"){
+  results.push({time:new Date().toLocaleString(),name:currentUser.name,user:currentUser.user,type:testType,duration,total:totalTyped,correct,wrong,wpm});
+  localStorage.setItem("results",JSON.stringify(results));
+ }
+ alert(`ทั้งหมด ${totalTyped} | ถูก ${correct} | ผิด ${wrong} | ${wpm} คำ/นาที`);
+ goDashboard();
+}
+
+/* STATS */
+function openStats(){
+ dashboardPage.classList.add("hidden");
+ statsPage.classList.remove("hidden");
+
+ let data=currentUser.role==="teacher"?results:results.filter(r=>r.user===currentUser.user);
+ resultTable.innerHTML=`<tr><th>เวลา</th><th>ชื่อ</th><th>ประเภท</th><th>นาที</th><th>ทั้งหมด</th><th>ถูก</th><th>ผิด</th><th>คำ/นาที</th>${currentUser.role==="teacher"?"<th>ลบ</th>":""}</tr>`+
+ data.map((r,i)=>`<tr>
+ <td>${r.time}</td><td>${r.name}</td><td>${r.type}</td><td>${r.duration}</td>
+ <td>${r.total}</td><td>${r.correct}</td><td>${r.wrong}</td><td>${r.wpm}</td>
+ ${currentUser.role==="teacher"?`<td><button class="del" onclick="delResult(${i})">ลบ</button></td>`:""}
+ </tr>`).join("");
+
+ exportBtn.classList.toggle("hidden",currentUser.role!=="teacher");
+
+ if(currentUser.role==="teacher"){
+  studentTitle.classList.remove("hidden");
+  userTable.innerHTML=`<tr><th>ชื่อ</th><th>User</th><th>ลบ</th></tr>`+
+  users.map((u,i)=>`<tr><td>${u.name}</td><td>${u.user}</td><td><button class="del" onclick="delUser(${i})">ลบ</button></td></tr>`).join("");
+ }
+}
+function delResult(i){results.splice(i,1);localStorage.setItem("results",JSON.stringify(results));openStats()}
+function delUser(i){users.splice(i,1);localStorage.setItem("users",JSON.stringify(users));openStats()}
+function exportCSV(){
+ let csv="เวลา,ชื่อ,ประเภท,นาที,ทั้งหมด,ถูก,ผิด,คำต่อนาที\n";
+ results.forEach(r=>csv+=`${r.time},${r.name},${r.type},${r.duration},${r.total},${r.correct},${r.wrong},${r.wpm}\n`);
+ let blob=new Blob([csv],{type:"text/csv"});
+ let a=document.createElement("a");
+ a.href=URL.createObjectURL(blob);
+ a.download="typing_results.csv";
+ a.click();
+}
+function goDashboard(){
+ typingPage.classList.add("hidden");
+ statsPage.classList.add("hidden");
+ dashboardPage.classList.remove("hidden");
+}
+</script>
+</body>
+</html>
